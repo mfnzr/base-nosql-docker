@@ -57,6 +57,24 @@ if [[ -f "$SCRIPT_DIR/init/redis-init.commands" ]]; then
     done
 fi
 
+# ── Criar o índice de busca no Elasticsearch a partir de init/elastic-init.json ─
+echo -e "${CYAN}Aguardando o Elasticsearch para criar o índice de busca...${NC}"
+INDICE_OK=0
+for i in {1..40}; do
+    if curl -s -f http://localhost:9234 >/dev/null 2>&1 \
+        && docker exec nosql_app npm run seed:elastic >/dev/null 2>&1; then
+        INDICE_OK=1
+        break
+    fi
+    sleep 3
+done
+if [[ "$INDICE_OK" == "1" ]]; then
+    echo -e "${GREEN}Índice de busca criado a partir dos dados do MongoDB.${NC}"
+else
+    echo -e "${YELLOW}[AVISO] Não foi possível criar o índice de busca agora. Com o ambiente no ar, rode:${NC}"
+    echo -e "${YELLOW}        docker exec nosql_app npm run seed:elastic${NC}"
+fi
+
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║             🚀 AMBIENTE NOSQL ATIVO E PRONTO!                    ║${NC}"

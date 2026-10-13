@@ -15,12 +15,10 @@
         "type": "text"
       },
       "nome": {
-        "type": "text",
-        "boost": 3
+        "type": "text"
       },
       "descricao": {
-        "type": "text",
-        "boost": 2
+        "type": "text"
       },
       "categoria": {
         "type": "keyword"

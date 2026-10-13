@@ -18,24 +18,7 @@ function getElasticInitConfig() {
     }
   }
 
-  // Fallback padrão se não encontrar o arquivo
-  return {
-    settings: { number_of_shards: 1, number_of_replicas: 0 },
-    mappings: {
-      properties: {
-        prato_id: { type: "keyword" },
-        restaurante_id: { type: "keyword" },
-        restaurante_nome: { type: "text" },
-        nome: { type: "text", boost: 3 },
-        descricao: { type: "text", boost: 2 },
-        categoria: { type: "keyword" },
-        preco: { type: "float" },
-        ingredientes: { type: "text" },
-        alergenos: { type: "keyword" },
-        disponivel: { type: "boolean" },
-      },
-    },
-  };
+  throw new Error("Arquivo init/elastic-init.json não encontrado.");
 }
 
 export async function seedElasticsearch(keepConnectionsOpen = false) {
@@ -104,6 +87,8 @@ export async function seedElasticsearch(keepConnectionsOpen = false) {
     await closeMongo();
     await closeElastic();
   }
+
+  return count;
 }
 
 // Execução direta via CLI
