@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { ObjectId } from "mongodb";
+import { responderErro } from "../utils/erros.js";
+import { ObjectId, MongoWriteConcernError } from "mongodb";
 import { getCollection } from "../database/mongo.js";
-import { getRedisClient } from "../database/redis.js";
+import { getRedisPronto } from "../database/redis.js";
 
 // Máquina de estados: status novo → status anteriores permitidos
 const ANTERIORES: Record<string, string[]> = {
@@ -13,6 +14,98 @@ const ANTERIORES: Record<string, string[]> = {
 export const RANKING_PRODUTOS = "domingueira:ranking:produtos";
 
 export class PedidosController {
+  /**
+   * ESCRITA CRÍTICA — POST /api/pedidos
+   * Body: { cliente_id, loja_id, tipo_entrega: "ENTREGA"|"RETIRADA", endereco_idx?: 0,
+   *         itens: [{ produto_id, quantidade }] }
+   * Um pedido pago NÃO pode ser perdido: gravado com writeConcern { w: "majority" } explícito,
+   * isto é, só é confirmado depois que a maioria dos nós do replica set guardou o dado.
+   * Preços e nomes são copiados do catálogo (snapshot imutável).
+   */
+  static async criar(req: Request, res: Response): Promise<void> {
+    try {
+      const { cliente_id, loja_id, tipo_entrega, endereco_idx, itens } = req.body ?? {};
+      if (!ObjectId.isValid(cliente_id) || !ObjectId.isValid(loja_id) || !["ENTREGA", "RETIRADA"].includes(tipo_entrega) || !Array.isArray(itens) || itens.length === 0) {
+        res.status(400).json({ erro: "Informe cliente_id, loja_id, tipo_entrega (ENTREGA|RETIRADA) e itens [{produto_id, quantidade}]." });
+        return;
+      }
+      const cliente = await getCollection("usuarios").findOne({ _id: new ObjectId(cliente_id), papel: "CLIENTE" });
+      const loja = await getCollection("lojas").findOne({ _id: new ObjectId(loja_id), ativa: true });
+      if (!cliente || !loja) {
+        res.status(404).json({ erro: "Cliente ou loja não encontrados." });
+        return;
+      }
+      if (itens.some((i: any) => !ObjectId.isValid(i?.produto_id) || !(Number(i?.quantidade) > 0))) {
+        res.status(400).json({ erro: "Cada item precisa de produto_id válido e quantidade maior que zero." });
+        return;
+      }
+      const ids = itens.map((i: any) => new ObjectId(i.produto_id));
+      const produtos = await getCollection("produtos").find({ _id: { $in: ids }, loja_id: loja._id, ativo: true }).toArray();
+      const porId = new Map(produtos.map((p) => [p._id.toString(), p]));
+      if (itens.some((i: any) => !porId.has(i.produto_id))) {
+        res.status(422).json({ erro: "Algum produto não existe, está inativo ou não pertence a esta loja." });
+        return;
+      }
+
+      const itensPedido = itens.map((i: any) => {
+        const p = porId.get(i.produto_id)!;
+        const unit = p.venda.tipo === "PESO" ? p.venda.preco_kg : p.venda.preco;
+        const quantidade = Number(i.quantidade);
+        return { produto_id: p._id, nome: p.nome, tipo_venda: p.venda.tipo, quantidade, preco_unitario: unit, subtotal: Math.round(unit * quantidade * 100) / 100 };
+      });
+      const subtotal = Math.round(itensPedido.reduce((t: number, i: any) => t + i.subtotal, 0) * 100) / 100;
+
+      let endereco: any = null;
+      let taxa = 0;
+      if (tipo_entrega === "ENTREGA") {
+        if (!loja.atendimento?.entrega?.ativa) {
+          res.status(422).json({ erro: "Esta loja não faz entrega." });
+          return;
+        }
+        if (subtotal < loja.atendimento.entrega.pedido_minimo) {
+          res.status(422).json({ erro: `Pedido mínimo para entrega: R$ ${loja.atendimento.entrega.pedido_minimo.toFixed(2)}.` });
+          return;
+        }
+        const { apelido, ...resto } = cliente.enderecos?.[Number(endereco_idx ?? 0)] ?? ({} as any);
+        if (!resto.logradouro) {
+          res.status(422).json({ erro: "Endereço do cliente não encontrado (endereco_idx)." });
+          return;
+        }
+        endereco = resto;
+        taxa = loja.atendimento.entrega.taxa;
+      }
+
+      const agora = new Date();
+      const pedido = {
+        _id: new ObjectId(), cliente_id: cliente._id, loja_id: loja._id, loja_nome: loja.nome, tipo_entrega, endereco_entrega: endereco,
+        itens: itensPedido, subtotal, taxa_entrega: taxa, total: Math.round((subtotal + taxa) * 100) / 100,
+        status: "PENDENTE", historico: [{ status: "PENDENTE", em: agora }], pagamento: { forma: "PIX", status: "PAGO" },
+        criado_em: agora, atualizado_em: agora,
+      };
+
+      try {
+        // writeConcern EXPLÍCITO: a gravação só é confirmada quando a maioria dos nós a tem.
+        await getCollection("pedidos").insertOne(pedido, { writeConcern: { w: "majority", wtimeout: 5000 } });
+      } catch (err: any) {
+        if (err instanceof MongoWriteConcernError) {
+          // ATENÇÃO: este erro NÃO significa "não gravou". O primário JÁ gravou o pedido; o que não
+          // deu tempo foi a confirmação da maioria. Repetir o POST criaria um pedido DUPLICADO.
+          res.status(202).json({
+            situacao: "GRAVADO_AGUARDANDO_CONFIRMACAO",
+            aviso: "O pedido foi gravado, mas a confirmação da maioria dos nós não chegou a tempo. NÃO repita o envio: consulte o pedido pelo id.",
+            pedido_id: pedido._id,
+            detalhe: err.message,
+          });
+          return;
+        }
+        throw err;
+      }
+      res.status(201).json({ mensagem: "Pedido gravado e confirmado pela maioria dos nós (w: majority).", dados: pedido });
+    } catch (err: any) {
+      responderErro(res, err, "Erro ao criar pedido");
+    }
+  }
+
   /**
    * CONSULTA 4 — GET /api/pedidos/cliente/:clienteId?limite=10
    * Histórico do cliente com projeção enxuta para a tela mobile.
@@ -35,7 +128,7 @@ export class PedidosController {
         .toArray();
       res.json({ origem: "MONGODB", total: pedidos.length, dados: pedidos });
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao buscar histórico", detalhe: err.message });
+      responderErro(res, err, "Erro ao buscar histórico");
     }
   }
 
@@ -64,14 +157,14 @@ export class PedidosController {
       }
       if (novo === "ENTREGUE") {
         try {
-          const pipe = getRedisClient().pipeline();
+          const pipe = getRedisPronto().pipeline();
           for (const item of pedido.itens) pipe.zincrby(RANKING_PRODUTOS, Math.ceil(item.quantidade), item.produto_id.toString());
           await pipe.exec();
         } catch { /* ranking é derivado; falha não desfaz o pedido */ }
       }
       res.json({ mensagem: `Pedido atualizado para ${novo}.`, dados: pedido });
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao atualizar status", detalhe: err.message });
+      responderErro(res, err, "Erro ao atualizar status");
     }
   }
 
@@ -102,7 +195,7 @@ export class PedidosController {
         .toArray();
       res.json({ origem: "MONGODB (aggregation)", total: dados.length, dados });
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao gerar relatório", detalhe: err.message });
+      responderErro(res, err, "Erro ao gerar relatório");
     }
   }
 }

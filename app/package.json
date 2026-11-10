@@ -8,7 +8,11 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed:elastic": "tsx src/scripts/seed-elastic.ts"
+    "seed:elastic": "tsx src/scripts/seed-elastic.ts",
+    "seed:carga": "tsx src/scripts/seed-carga.ts",
+    "benchmark": "tsx src/scripts/benchmark.ts",
+    "indice:criar": "tsx src/scripts/indices.ts criar",
+    "indice:remover": "tsx src/scripts/indices.ts remover"
   },
   "keywords": [
     "nosql",

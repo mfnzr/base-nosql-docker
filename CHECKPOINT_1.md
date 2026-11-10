@@ -92,6 +92,11 @@ Banco: `domingueira`. Seis coleções (cinco de domínio e uma técnica de sincr
 
 ---
 
+### 2.7 `entregadores` (adicionada no Checkpoint 3)
+`_id` (ObjectId), `nome`, `veiculo`, `telefone` (String), `ativo` (Boolean), `criado_em` (Date). Cadastro durável; a posição em tempo real fica no Redis (ver `CHECKPOINT_3.md`).
+
+---
+
 ## 3. Embedding vs. Referencing
 
 | Relacionamento | Decisão | Justificativa técnica |

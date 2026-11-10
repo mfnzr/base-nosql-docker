@@ -11,8 +11,8 @@ export function getElasticClient(): Client {
   if (!elasticClient) {
     elasticClient = new Client({
       node,
-      maxRetries: 3,
-      requestTimeout: 5000,
+      maxRetries: 1,
+      requestTimeout: 2000,
     });
   }
   return elasticClient;

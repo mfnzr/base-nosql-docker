@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { responderErro } from "../utils/erros.js";
 import { ObjectId } from "mongodb";
 import { getCollection } from "../database/mongo.js";
 import { cacheDel } from "../database/redis.js";
@@ -25,7 +26,7 @@ export class ProdutosController {
         .toArray();
       res.json({ origem: "MONGODB", filtros: filtro, total: produtos.length, dados: produtos });
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao filtrar produtos", detalhe: err.message });
+      responderErro(res, err, "Erro ao filtrar produtos");
     }
   }
 
@@ -74,8 +75,8 @@ export class ProdutosController {
 
       // 3. Redis
       const loja = await getCollection("lojas").findOne(lojaFiltro, { projection: { slug: 1 } });
-      let cache = "INVALIDADO";
-      try { if (loja) await cacheDel(chaveCacheLoja(loja.slug)); } catch { cache = "FALHOU (expira pelo TTL)"; }
+      const invalidou = loja ? await cacheDel(chaveCacheLoja(loja.slug)) : true;
+      const cache = invalidou ? "INVALIDADO" : "INDISPONIVEL (Redis fora do ar; o cache expira pelo TTL de 120 s)";
 
       res.json({
         mensagem: "Produto atualizado no MongoDB.",
@@ -84,7 +85,7 @@ export class ProdutosController {
         dados: produto,
       });
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao atualizar produto", detalhe: err.message });
+      responderErro(res, err, "Erro ao atualizar produto");
     }
   }
 
@@ -114,11 +115,10 @@ export class ProdutosController {
         { $push: { cardapio: { produto_id: produto._id, nome, venda: produto.venda, estoque: { limitado: false }, ativo: true } } as any, $set: { atualizada_em: agora } }
       );
       const sync = await sincronizarProduto(produto._id);
-      let cache = "INVALIDADO";
-      try { await cacheDel(chaveCacheLoja(loja.slug)); } catch { cache = "FALHOU (expira pelo TTL)"; }
+      const cache = (await cacheDel(chaveCacheLoja(loja.slug))) ? "INVALIDADO" : "INDISPONIVEL (Redis fora do ar; o cache expira pelo TTL de 120 s)";
       res.status(201).json({ mensagem: "Produto criado.", elasticsearch: sync.status === "OK" ? "INDEXADO" : `PENDENTE (${sync.erro})`, cache_redis: cache, dados: produto });
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao criar produto", detalhe: err.message });
+      responderErro(res, err, "Erro ao criar produto");
     }
   }
 
@@ -127,7 +127,7 @@ export class ProdutosController {
     try {
       res.json(await reprocessarPendentes());
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao reprocessar", detalhe: err.message });
+      responderErro(res, err, "Erro ao reprocessar");
     }
   }
 }

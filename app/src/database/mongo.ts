@@ -10,16 +10,22 @@ let client: MongoClient | null = null;
 let database: Db | null = null;
 
 export async function connectMongo(): Promise<Db> {
-  if (!client) {
-    client = new MongoClient(uri, {
+  if (!database) {
+    const novo = new MongoClient(uri, {
       maxPoolSize: 10,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 2000,
     });
-    await client.connect();
+    try {
+      await novo.connect();
+    } catch (err) {
+      await novo.close().catch(() => {}); // não deixa um client quebrado "preso" para as próximas tentativas
+      throw err;
+    }
+    client = novo;
     database = client.db(dbName);
     console.log(`[MongoDB] Conectado com sucesso ao banco '${dbName}'!`);
   }
-  return database!;
+  return database;
 }
 
 export function getDb(): Db {

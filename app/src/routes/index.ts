@@ -9,6 +9,8 @@ import produtosRoutes from "./produtos.routes.js";
 import pedidosRoutes from "./pedidos.routes.js";
 import redisRoutes from "./redis.routes.js";
 import buscaRoutes from "./busca.routes.js";
+import pertoRoutes from "./perto.routes.js";
+import desempenhoRoutes from "./desempenho.routes.js";
 
 const routes = Router();
 
@@ -35,6 +37,8 @@ routes.use("/pedidos", pedidosRoutes);
 routes.get("/relatorios/faturamento", PedidosController.faturamento);
 routes.use("/", redisRoutes);
 routes.use("/busca", buscaRoutes);
+routes.use("/", pertoRoutes);
+routes.use("/desempenho", desempenhoRoutes);
 routes.post("/sync/reprocessar", ProdutosController.reprocessar);
 
 export default routes;

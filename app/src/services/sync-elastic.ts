@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { getCollection } from "../database/mongo.js";
 import { getElasticClient } from "../database/elastic.js";
+import { comLimite } from "../database/redis.js";
 
 export const INDICE_PRODUTOS = "produtos";
 
@@ -44,7 +45,7 @@ export async function indexarProduto(produtoId: ObjectId): Promise<void> {
 /** Tenta indexar; se o Elasticsearch falhar, registra na fila durável sync_pendentes (MongoDB). */
 export async function sincronizarProduto(produtoId: ObjectId): Promise<{ status: "OK" | "PENDENTE"; erro?: string }> {
   try {
-    await indexarProduto(produtoId);
+    await comLimite(indexarProduto(produtoId), 3000);
     await getCollection("sync_pendentes").deleteOne({ produto_id: produtoId });
     return { status: "OK" };
   } catch (err: any) {

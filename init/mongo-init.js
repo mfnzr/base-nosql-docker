@@ -240,7 +240,16 @@ db.avaliacoes.insertMany([
   { pedido_id: oid(PD(6)), loja_id: oid(L.fornada), cliente_id: oid(U.thiago), nota: 5, comentario: "A cuca de banana é a melhor da cidade.", criada_em: ISODate("2026-11-01T12:00:00Z") },
 ]);
 
-// ── 6. SYNC_PENDENTES (fila de reindexações do Elasticsearch que falharam) ───
+// ── 6. ENTREGADORES (cadastro durável; a POSIÇÃO em tempo real fica no Redis, via GEOADD) ──
+db.createCollection("entregadores");
+db.entregadores.createIndex({ ativo: 1 });
+db.entregadores.insertMany([
+  { _id: oid("670a50008f3b4a5d6e7f8e01"), nome: "Anderson Lima", veiculo: "MOTO", telefone: "42997770001", ativo: true, criado_em: ISODate("2026-09-01T12:00:00Z") },
+  { _id: oid("670a50008f3b4a5d6e7f8e02"), nome: "Beatriz Campos", veiculo: "MOTO", telefone: "42997770002", ativo: true, criado_em: ISODate("2026-09-02T12:00:00Z") },
+  { _id: oid("670a50008f3b4a5d6e7f8e03"), nome: "Cássio Ribas", veiculo: "BICICLETA", telefone: "42997770003", ativo: true, criado_em: ISODate("2026-09-03T12:00:00Z") },
+]);
+
+// ── 7. SYNC_PENDENTES (fila de reindexações do Elasticsearch que falharam) ───
 db.createCollection("sync_pendentes");
 db.sync_pendentes.createIndex({ produto_id: 1 }, { unique: true });
 

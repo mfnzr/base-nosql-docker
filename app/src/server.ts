@@ -32,6 +32,11 @@ app.get("/", (req: Request, res: Response) => {
       ranking_redis: "GET /api/ranking/produtos",
       busca_elastic: "GET /api/busca?q=",
       escrita_sincronizada: "PUT /api/produtos/:id",
+      lojas_por_raio: "GET /api/perto/lojas?lat=&lng=&raio_km=",
+      entregadores_por_raio: "GET /api/perto/entregadores?lat=&lng=&raio_km=",
+      posicao_entregador: "PUT /api/entregadores/:id/posicao",
+      criar_pedido_critico: "POST /api/pedidos",
+      desempenho: "GET /api/desempenho/pedidos/:clienteId | /api/desempenho/explain/:clienteId",
     },
     interfaces_web: {
       elasticvue: "http://localhost:8400",
@@ -50,10 +55,14 @@ async function bootstrap() {
   console.log("  Iniciando conexões com os bancos NoSQL...");
   console.log("=======================================================");
 
-  try {
-    await connectMongo();
-  } catch (err: any) {
-    console.error(`[MongoDB] Erro na inicialização: ${err.message}`);
+  for (let tentativa = 1; tentativa <= 15; tentativa++) {
+    try {
+      await connectMongo();
+      break;
+    } catch (err: any) {
+      console.error(`[MongoDB] Tentativa ${tentativa}/15 falhou: ${err.message}`);
+      await new Promise((r) => setTimeout(r, 2000));
+    }
   }
 
   try {

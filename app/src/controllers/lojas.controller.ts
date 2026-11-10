@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
+import { responderErro } from "../utils/erros.js";
 import { getCollection } from "../database/mongo.js";
-import { cacheGet, cacheSet } from "../database/redis.js";
+import { cacheGet, cacheSet, redisPronto } from "../database/redis.js";
 
 export const TTL_CACHE_LOJA = 120; // segundos
 export const chaveCacheLoja = (slug: string) => `domingueira:loja:${slug}`;
@@ -45,7 +46,7 @@ export class LojasController {
         .toArray();
       res.json({ origem: "MONGODB ($geoNear)", total: lojas.length, dados: lojas });
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao buscar lojas próximas", detalhe: err.message });
+      responderErro(res, err, "Erro ao buscar lojas próximas");
     }
   }
 
@@ -58,6 +59,8 @@ export class LojasController {
       const slug = req.params.slug;
       const chave = chaveCacheLoja(slug);
 
+      // Redis é opcional: se estiver fora do ar, cacheGet devolve null na hora (sem erro e sem esperar)
+      const redisNoAr = !redisPronto();
       const emCache = await cacheGet<any>(chave);
       if (emCache) {
         res.setHeader("X-Cache", "HIT");
@@ -70,12 +73,17 @@ export class LojasController {
         res.status(404).json({ erro: "Loja não encontrada." });
         return;
       }
-      await cacheSet(chave, loja, TTL_CACHE_LOJA);
 
-      res.setHeader("X-Cache", "MISS");
-      res.json({ origem: `MONGODB (gravado no Redis por ${TTL_CACHE_LOJA}s)`, chave, dados: loja });
+      if (redisNoAr) {
+        res.setHeader("X-Cache", "BYPASS");
+        res.json({ origem: "MONGODB (Redis fora do ar, sem cache)", aviso: "Cache indisponível; resposta lida direto do MongoDB.", chave, dados: loja });
+        return;
+      }
+      const gravou = await cacheSet(chave, loja, TTL_CACHE_LOJA);
+      res.setHeader("X-Cache", gravou ? "MISS" : "BYPASS");
+      res.json({ origem: gravou ? `MONGODB (gravado no Redis por ${TTL_CACHE_LOJA}s)` : "MONGODB (não foi possível gravar no cache)", chave, dados: loja });
     } catch (err: any) {
-      res.status(500).json({ erro: "Erro ao obter loja", detalhe: err.message });
+      responderErro(res, err, "Erro ao obter loja");
     }
   }
 }

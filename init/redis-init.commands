@@ -13,3 +13,8 @@ ZADD domingueira:ranking:produtos 33 "670a1d4f8f3b4a5d6e7f8b02"
 ZADD domingueira:ranking:produtos 29 "670a1d4f8f3b4a5d6e7f8b11"
 ZADD domingueira:ranking:produtos 24 "670a1d4f8f3b4a5d6e7f8b10"
 ZADD domingueira:ranking:produtos 18 "670a1d4f8f3b4a5d6e7f8b13"
+
+# Posição atual dos entregadores (GEO: longitude ANTES da latitude). Atualizada por PUT /api/entregadores/:id/posicao
+GEOADD domingueira:entregadores:posicao -51.4605 -25.3940 "670a50008f3b4a5d6e7f8e01"
+GEOADD domingueira:entregadores:posicao -51.4700 -25.3860 "670a50008f3b4a5d6e7f8e02"
+GEOADD domingueira:entregadores:posicao -51.4420 -25.4030 "670a50008f3b4a5d6e7f8e03"
