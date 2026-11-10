@@ -1,42 +1,37 @@
 {
   "settings": {
     "number_of_shards": 1,
-    "number_of_replicas": 0
+    "number_of_replicas": 0,
+    "analysis": {
+      "filter": {
+        "stop_pt": { "type": "stop", "stopwords": "_portuguese_" },
+        "stemmer_pt": { "type": "stemmer", "language": "light_portuguese" }
+      },
+      "analyzer": {
+        "pt_sem_acento": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": ["lowercase", "asciifolding", "stop_pt", "stemmer_pt"]
+        }
+      }
+    }
   },
   "mappings": {
     "properties": {
-      "prato_id": {
-        "type": "keyword"
-      },
-      "restaurante_id": {
-        "type": "keyword"
-      },
-      "restaurante_nome": {
-        "type": "text"
-      },
-      "nome": {
-        "type": "text",
-        "boost": 3
-      },
-      "descricao": {
-        "type": "text",
-        "boost": 2
-      },
-      "categoria": {
-        "type": "keyword"
-      },
-      "preco": {
-        "type": "float"
-      },
-      "ingredientes": {
-        "type": "text"
-      },
-      "alergenos": {
-        "type": "keyword"
-      },
-      "disponivel": {
-        "type": "boolean"
-      }
+      "produto_id":   { "type": "keyword" },
+      "loja_id":      { "type": "keyword" },
+      "loja_slug":    { "type": "keyword" },
+      "loja_nome":    { "type": "text", "analyzer": "pt_sem_acento" },
+      "nome":         { "type": "text", "analyzer": "pt_sem_acento" },
+      "descricao":    { "type": "text", "analyzer": "pt_sem_acento" },
+      "ingredientes": { "type": "text", "analyzer": "pt_sem_acento" },
+      "categoria":    { "type": "keyword" },
+      "alergenos":    { "type": "keyword" },
+      "tipo_venda":   { "type": "keyword" },
+      "bairro":       { "type": "keyword" },
+      "cidade":       { "type": "keyword" },
+      "preco":        { "type": "float" },
+      "disponivel":   { "type": "boolean" }
     }
   }
 }

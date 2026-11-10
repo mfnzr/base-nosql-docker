@@ -10,7 +10,7 @@ services:
     environment:
       - PORT=3400
       - MONGO_URI=mongodb://root:root@mongo:27017
-      - MONGO_DB_NAME=gastrohub
+      - MONGO_DB_NAME=domingueira
       - REDIS_URL=redis://redis:6379
       - ELASTICSEARCH_NODE=http://elasticsearch:9200
     volumes:

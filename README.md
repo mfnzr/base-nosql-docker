@@ -47,7 +47,7 @@ Para evitar conflitos com outros programas locais do Ubuntu, utilizamos portas d
 | :--- | :--- | :--- | :--- |
 | **API Starter (Express + TS)** | [http://localhost:3400](http://localhost:3400) | Aplicação com hot-reload ativo | Sem autenticação |
 | **ElasticVue (Elasticsearch)** | [http://localhost:8400](http://localhost:8400) | Interface visual para explorar índices e buscas | Conecta em `http://localhost:9200` |
-| **Mongo Express (MongoDB)** | [http://localhost:8401](http://localhost:8401) | Visualizar coleções do banco **GastroHub** | Já conecta autenticado |
+| **Mongo Express (MongoDB)** | [http://localhost:8401](http://localhost:8401) | Visualizar coleções do banco **domingueira** | Já conecta autenticado |
 | **Redis Commander (Redis)** | [http://localhost:8402](http://localhost:8402) | Inspecionar chaves, TTLs e valores em memória | Sem necessidade de login |
 | **MongoDB (Porta direta)** | `localhost:27034` | Conexão para Compass, DBeaver ou VS Code | `root` / `root` |
 | **Redis (Porta direta)** | `localhost:6334` | Conexão direta TCP | Sem senha |
@@ -58,8 +58,8 @@ Para evitar conflitos com outros programas locais do Ubuntu, utilizamos portas d
 ## 📡 Endpoints Prontos para Testar
 
 - **Health Check dos 3 Bancos:** [http://localhost:3400/api/health](http://localhost:3400/api/health)
-- **Simple Collection (GET /api/itens):** [http://localhost:3400/api/itens](http://localhost:3400/api/itens)
-  - *Dica:* Na 1ª requisição, você verá `origem: "MONGODB (Salvo no Redis por 60s)"`. Na 2ª requisição, você verá `origem: "REDIS_CACHE (< 2ms)"`!
+- **Projeto Domingueira:** veja `CHECKPOINT_1.md` (modelagem MongoDB) e `CHECKPOINT_2.md` (Redis + Elasticsearch, com roteiro de `curl` na Seção 7).
+  - Exemplo: [http://localhost:3400/api/lojas/assados-do-trianon](http://localhost:3400/api/lojas/assados-do-trianon) (1ª chamada `X-Cache: MISS`, 2ª `HIT`).
 
 ---
 
@@ -155,7 +155,7 @@ init/
   ```bash
   ./parar.sh
   ```
-- **Resetar tudo para o estado original de fábrica (GastroHub limpo):**
+- **Resetar tudo para o estado original de fábrica (Domingueira limpo):**
   ```bash
   ./reset.sh
   ```

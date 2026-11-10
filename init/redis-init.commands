@@ -1,21 +1,15 @@
-# =============================================================================
-# REDIS INITIALIZATION COMMANDS — GASTROHUB / PROJETO
-# =============================================================================
-# Este arquivo é executado pelo script iniciar.sh ao subir o container do Redis.
-# Os alunos podem adicionar novos comandos (SET, HSET, SADD, ZADD, LPUSH) aqui.
+# REDIS INIT — DOMINGUEIRA  (padrão de chaves: domingueira:entidade:id)
+# Executado pelo iniciar.sh depois que o container do Redis responde.
 
-# 1. Configurações globais da aplicação (Estrutura: Hash)
-HSET config:app versao "1.0.0" ambiente "desenvolvimento" taxa_entrega_padrao "5.50" cidade "Guarapuava"
+# Configurações globais (Hash)
+HSET domingueira:config:app versao "1.0.0" cidade "Guarapuava" ttl_cache_loja_segundos "120"
 
-# 2. Conjunto de categorias ativas para validação rápida (Estrutura: Set)
-SADD categorias:ativas "Pizzas" "Japonesa" "Burgers" "Brasileira" "Mexicana"
+# Categorias válidas de produto (Set — pertencimento em O(1))
+SADD domingueira:categorias:ativas "Aves" "Carnes" "Espetos" "Pratos" "Padaria" "Laticínios" "Acompanhamentos"
 
-# 3. Ranking de pratos mais pedidos para a home do app (Estrutura: Sorted Set)
-ZADD ranking:pratos:pedidos 250 "Combo Sashimi"
-ZADD ranking:pratos:pedidos 190 "Pizza Margherita"
-ZADD ranking:pratos:pedidos 140 "Classic Burger"
-ZADD ranking:pratos:pedidos 85 "Prato Feito Mineiro"
-ZADD ranking:pratos:pedidos 60 "Taco de Carne"
-
-# 4. Contador inicial de acessos (Estrutura: String/Integer)
-SET stats:visitas:total 1000
+# Ranking de produtos mais vendidos (Sorted Set: membro = produto_id, score = unidades/pedidos entregues)
+ZADD domingueira:ranking:produtos 41 "670a1d4f8f3b4a5d6e7f8b01"
+ZADD domingueira:ranking:produtos 33 "670a1d4f8f3b4a5d6e7f8b02"
+ZADD domingueira:ranking:produtos 29 "670a1d4f8f3b4a5d6e7f8b11"
+ZADD domingueira:ranking:produtos 24 "670a1d4f8f3b4a5d6e7f8b10"
+ZADD domingueira:ranking:produtos 18 "670a1d4f8f3b4a5d6e7f8b13"

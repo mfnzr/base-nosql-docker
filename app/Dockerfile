@@ -10,7 +10,7 @@ RUN npm install
 COPY tsconfig.json ./
 COPY src ./src
 
-EXPOSE 3000
+EXPOSE 3400
 
 # Executa em modo desenvolvimento com hot-reload (tsx watch)
 CMD ["npm", "run", "dev"]

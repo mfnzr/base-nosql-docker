@@ -18,12 +18,20 @@ app.use(express.json());
 // Rota raiz com mapa simples da API
 app.get("/", (req: Request, res: Response) => {
   res.json({
-    titulo: "UTFPR — NoSQL Starter App",
+    titulo: "Domingueira — assados e comidas de fim de semana (Guarapuava)",
     disciplina: "Banco de Dados NoSQL (TSI34E-TSI4)",
-    professor: "Prof. Marcelo Vichar",
     endpoints: {
       health: "GET /api/health",
-      itens_simples: "GET /api/itens",
+      lojas_proximas: "GET /api/lojas/proximas?lat=&lng=",
+      loja_cache_aside: "GET /api/lojas/:slug",
+      produtos_filtro: "GET /api/produtos?categoria=&preco_max=",
+      faturamento: "GET /api/relatorios/faturamento",
+      historico_cliente: "GET /api/pedidos/cliente/:id",
+      status_pedido: "PATCH /api/pedidos/:id/status",
+      carrinho_redis: "PUT|GET|DELETE /api/carrinho/:clienteId",
+      ranking_redis: "GET /api/ranking/produtos",
+      busca_elastic: "GET /api/busca?q=",
+      escrita_sincronizada: "PUT /api/produtos/:id",
     },
     interfaces_web: {
       elasticvue: "http://localhost:8400",
@@ -64,7 +72,6 @@ async function bootstrap() {
     console.log("\n🚀 Servidor Express rodando com sucesso!");
     console.log(`📡 URL Principal: http://localhost:${PORT}`);
     console.log(`🩺 Health Check:  http://localhost:${PORT}/api/health`);
-    console.log(`📦 Simple Coleção: http://localhost:${PORT}/api/itens`);
     console.log("=======================================================\n");
   });
 

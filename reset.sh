@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# reset.sh — Reseta todos os volumes e restaura o dataset GastroHub de fábrica
+# reset.sh — Reseta todos os volumes e restaura o dataset Domingueira de fábrica
 #
 set -e
 
@@ -24,12 +24,13 @@ fi
 echo "Limpando containers e volumes..."
 if docker info >/dev/null 2>&1; then
     docker compose down -v
-    docker compose up -d
 elif sg docker -c "docker info" >/dev/null 2>&1; then
-    sg docker -c "docker compose down -v && docker compose up -d"
+    sg docker -c "docker compose down -v"
 else
     sudo docker compose down -v
-    sudo docker compose up -d
 fi
 
-echo -e "${GREEN}Ambiente resetado com sucesso! O banco GastroHub foi restaurado ao estado original.${NC}"
+# iniciar.sh recria os bancos, carrega o Redis e reconstrói o índice do Elasticsearch
+"$SCRIPT_DIR/iniciar.sh"
+
+echo -e "${GREEN}Ambiente resetado com sucesso! O banco Domingueira foi restaurado ao estado original.${NC}"

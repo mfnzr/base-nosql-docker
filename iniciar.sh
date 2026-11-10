@@ -57,6 +57,29 @@ if [[ -f "$SCRIPT_DIR/init/redis-init.commands" ]]; then
     done
 fi
 
+# ── Criar e popular o índice de busca (Elasticsearch) a partir do MongoDB ────
+echo -e "${CYAN}Aguardando MongoDB/Elasticsearch e criando o índice 'produtos'...${NC}"
+INDICE_OK=0
+for i in {1..60}; do
+    if docker exec nosql_app npx tsx src/scripts/seed-elastic.ts >/tmp/seed-elastic.log 2>&1; then
+        INDICE_OK=1
+        break
+    fi
+    sleep 3
+done
+if [[ "$INDICE_OK" == "1" ]]; then
+    echo -e "${GREEN}$(grep "Índice" /tmp/seed-elastic.log || tail -n 1 /tmp/seed-elastic.log)${NC}"
+else
+    echo -e "${YELLOW}[AVISO] Não foi possível criar o índice. Último erro:${NC}"
+    tail -n 5 /tmp/seed-elastic.log
+fi
+
+# ── Aguardar a API responder ──────────────────────────────────────────────────
+for i in {1..30}; do
+    curl -s -o /dev/null http://localhost:3400/api/health && break
+    sleep 1
+done
+
 echo ""
 echo -e "${GREEN}╔══════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${GREEN}║             🚀 AMBIENTE NOSQL ATIVO E PRONTO!                    ║${NC}"
@@ -64,7 +87,7 @@ echo -e "${GREEN}╠════════════════════
 echo -e "║  ${BOLD}APLICAÇÃO NODE/TYPESCRIPT (DOCKER):${NC}                             ║"
 echo -e "║  • API Express (Hot-Reload):       ${CYAN}http://localhost:3400${NC}          ║"
 echo -e "║  • Health Check dos 3 bancos:      ${CYAN}http://localhost:3400/api/health${NC} ║"
-echo -e "║  • Simple Collection (GET):        ${CYAN}http://localhost:3400/api/itens${NC}  ║"
+echo -e "║  • Busca (Elasticsearch):          ${CYAN}http://localhost:3400/api/busca?q=frango${NC}║"
 echo -e "${GREEN}╠══════════════════════════════════════════════════════════════════╣${NC}"
 echo -e "║  ${BOLD}INTERFACES VISUAIS (WEB):${NC}                                      ║"
 echo -e "║  • ElasticVue (Elasticsearch):     ${CYAN}http://localhost:8400${NC} (Use http://localhost:9234) ║"
